@@ -48,11 +48,7 @@ public class LineCounter {
 			}
 		}
 		
-		t.close();		
-		
-//		projectPaths.add("E:/Workspaces/maven-integration/es.ed0.chattest");
-//		projectPaths.add("E:/Workspaces/gwt(neon)/Los Olivos Bus");
-//		projectPaths.add("E:/Workspaces/AndroidStudioProjects/LosOlivosBus/app/src/main");
+		t.close();
 		
 	}
 	
