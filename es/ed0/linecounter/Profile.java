@@ -121,7 +121,6 @@ public class Profile {
 		final File file = new File(profiles_data);
 		if (!file.exists())
 			file.createNewFile();
-		final BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
 		final BufferedReader br = new BufferedReader(new FileReader(file));
 		final StringBuilder sb = new StringBuilder();
 		
@@ -134,6 +133,8 @@ public class Profile {
 		}
 		
 		br.close();
+		
+		final BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
 		bw.write(sb.toString());
 		bw.flush();
 		bw.close();

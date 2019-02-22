@@ -67,10 +67,10 @@ public class LineCounter {
 		case help:
 			sb.append("\thelp - show command list\n"
 					+ "\tcreate - create a new line counter profile\n"
-					+ "\tprint n - count lines and print results for profile number n\n"
+					+ "\tprint n - count lines and print results for profile with name or number n\n"
 					+ "\tshow - show all the profiles and their identification number\n"
-					+ "\tinfo n - show info about the profile number n\n"
-					+ "\tdelete n - delete the profile number n");
+					+ "\tinfo n - show info about the profile with name or number n\n"
+					+ "\tdelete n - delete the profile with name or number n");
 			break;
 		case create:
 			try {
@@ -87,10 +87,23 @@ public class LineCounter {
 			break;
 		case print: case info: case delete:
 			if (args.length < 2)
-				sb.append("Syntax: \"").append(args[0]).append(" n\"  where n is the number of profile (write \"show\" to list the profiles)");
+				sb.append("Syntax: \"").append(args[0]).append(" n\"  where n is the number or name of profile (write \"show\" to list the profiles)");
 			else {
+				Profile target = null;
 				try {
-					final Profile target = profiles.get(Integer.valueOf(args[1]));
+					int pIndex = Integer.valueOf(args[1]);
+					target = profiles.get(pIndex);
+				} catch (NumberFormatException | IndexOutOfBoundsException e) {
+					for (Profile pr : profiles)
+						if (pr.getName().equals(args[1])) {
+							target = pr;
+							break;
+						}
+				}
+				
+				if (target == null) {
+					sb.append("No Profile for " + args[1]);
+				} else {
 					switch (args[0]) {
 					case print: target.printResults(); break;
 					case info: target.printInfo(); break;
@@ -104,11 +117,8 @@ public class LineCounter {
 						}
 						break;
 					}
-				} catch (NumberFormatException e) {
-					sb.append("The value ").append(args[1]).append(" is not a valid number");
-				} catch (IndexOutOfBoundsException e) {
-					sb.append("No profile number ").append(args[1]);
 				}
+				
 			}
 			break;
 			default:
