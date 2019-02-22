@@ -109,7 +109,10 @@ public class Project {
 		case 2: sb.append("MB"); break;
 		case 3: sb.append("GB"); break;
 		case 4: sb.append("TB"); break;
-		default: sb.append("PB"); break;
+		/* who knows */
+		case 5: sb.append("PB"); break;
+		case 6: sb.append("EB"); break;
+		default: sb.append("ZB"); break;
 		}
 			
 		return sb.toString();
