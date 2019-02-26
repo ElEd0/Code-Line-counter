@@ -12,7 +12,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import es.ed0.linecounter.ResultTable.ResultPopulator;
+import es.ed0.consoleui.ui.BorderStyle;
+import es.ed0.consoleui.ui.Component;
+import es.ed0.consoleui.ui.EntryTable;
+import es.ed0.consoleui.ui.EntryTable.TablePopulator;
+import es.ed0.consoleui.ui.Grid;
+import es.ed0.consoleui.ui.Panel;
+import es.ed0.consoleui.ui.Separator;
+import es.ed0.consoleui.ui.Text;
 
 public class Profile {
 
@@ -31,59 +38,69 @@ public class Profile {
 		this.extensions = extensions;
 	}
 	
-	public void printInfo() {
-		System.out.println("========================================");
-		
-		System.out.println("Profile " + name);
-		System.out.print("\t- Extensions (" + extensions.size() + "):\t");
+	public Text getPrintInfo() {
+		Text info = new Text("");
+		info.append(new Separator(30));
+		info.appendln("Profile " + name);
+		info.append("\t- Extensions (" + extensions.size() + "):\t");
 		for (int i = 0; i < extensions.size(); i++)
-			System.out.print((i != 0 ? ", " : "") + extensions.get(i));
-		System.out.println();
+			info.append((i != 0 ? ", " : "") + extensions.get(i));
+		info.appendln("");
 		
-		System.out.println("\t- Projects (" + projects.size() + "):");
+		info.appendln("\t- Projects (" + projects.size() + "):");
 		for (Project pr : projects)
-			System.out.println("\t\t- " + pr.getPath() + "\tFiles loaded: " + pr.isExplored());
-		
-		System.out.println("========================================");
+			info.appendln("\t\t- " + pr.getPath() + "\tFiles loaded: " + pr.isExplored());
+
+		info.append(new Separator(30));
+		return info;
 	}
 
 	
-	public void printResults() {
+	public Text getPrintResults() {
 		for (Project p : projects)
 			p.explore(extensions);
 		
-		System.out.println("Profile " + name);
-		System.out.print("\t- Extensions:\t");
+		Text results = new Text("");
+		results.appendln("Profile " + name);
+		results.append("\t- Extensions:\t");
 		for (int i = 0; i < extensions.size(); i++)
-			System.out.print((i != 0 ? ", " : "") + extensions.get(i));
-		System.out.println();
-
+			results.append((i != 0 ? ", " : "") + extensions.get(i));
+		results.appendln("");
 		
-		ResultTable<Project> projectTable = new ResultTable<Project>(projects, "Path", "Lines", "Size", "Longest file");
+		EntryTable<Project> projectTable = new EntryTable<Project>(BorderStyle.unicode, projects, "Path", "Lines", "Size", "Longest file");
 		
-		projectTable.setResultPopulator(new ResultPopulator<Project>() {
+		projectTable.setTablePopulator(new TablePopulator<Project>() {
 			@Override
-			public ArrayList<String> getViewForRow(int index, Project entry) {
-				final ArrayList<String> data = new ArrayList<String>();
+			public ArrayList<Component> getViewForRow(int index, Project entry) {
+				final ArrayList<Component> data = new ArrayList<Component>();
 				
-				data.add(entry.getPath());
-				data.add(entry.getTotalLines() + "");
-				data.add(entry.getSize());
-				data.add(entry.getLongerFiles(1).get(0).getName());
+				data.add(new Text(entry.getPath()));
+				data.add(new Text(entry.getTotalLines()));
+				data.add(new Text(entry.getSize()));
+				data.add(new Text(entry.getLongerFiles(1).get(0).getName()));
 				
 				return data;
 			}
 		});
 		
-		projectTable.print();
+		results.append(projectTable);
 		
+		Grid longerFilesGrid = new Grid(BorderStyle.unicode, 2, projects.size());
+
 		for (Project p : projects) {
-			System.out.println(p.getPath() + " longer files");
+			longerFilesGrid.add(new Text(p.getPath()));
+			final Text fileList = new Text("");
 			List<File> top = p.getLongerFiles(longerFilesMaxCount);
 			for (File f0 : top)
-				System.out.println("\t- " + f0.getName() + " - Lines: " + Project.getTotalLinesForFile(f0));
+				fileList.appendln("- " + f0.getName() + " - Lines: " + Project.getTotalLinesForFile(f0));
+			longerFilesGrid.add(fileList);
 		}
 		
+		Panel longerFilesPanel = new Panel(BorderStyle.unicode, "Longer Files", longerFilesGrid);
+		
+		results.append(longerFilesPanel);
+		
+		return results;
 	}
 	
 	

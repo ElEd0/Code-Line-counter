@@ -5,11 +5,16 @@ package es.ed0.linecounter;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Scanner;
 
-import es.ed0.linecounter.ResultTable.ResultPopulator;
+import es.ed0.consoleui.ConsoleUi;
+import es.ed0.consoleui.input.CommandListener;
+import es.ed0.consoleui.ui.BorderStyle;
+import es.ed0.consoleui.ui.Component;
+import es.ed0.consoleui.ui.EntryTable;
+import es.ed0.consoleui.ui.EntryTable.TablePopulator;
+import es.ed0.consoleui.ui.Text;
 
-public class LineCounter {
+public class LineCounter implements CommandListener {
 
 	public static void main(String[] args) {
 		new LineCounter();
@@ -26,24 +31,27 @@ public class LineCounter {
 	
 	
 	private ArrayList<Profile> profiles;
-	private final Scanner t;
 	private boolean profilesDirty = false;
 	
+	private ConsoleUi ui;
+	
 	private LineCounter() {
+		ui = new ConsoleUi();
+		ui.addCommands(help, create, show, info, print, delete);
+		ui.addInputListener(this);
 		
-		System.out.println(".____    .__              _________                      __                ");
-		System.out.println("|    |   |__| ____   ____ \\_   ___ \\  ____  __ __  _____/  |_  ___________ ");
-		System.out.println("|    |   |  |/    \\_/ __ \\/    \\  \\/ /  _ \\|  |  \\/    \\   __\\/ __ \\_  __ \\");
-		System.out.println("|    |___|  |   |  \\  ___/\\     \\___(  <_> )  |  /   |  \\  | \\  ___/|  | \\/");
-		System.out.println("|_______ \\__|___|  /\\___  >\\______  /\\____/|____/|___|  /__|  \\___  >__|   ");
-		System.out.println("        \\/       \\/     \\/        \\/                  \\/          \\/       ");
+		ui.println(".____    .__              _________                      __                ");
+		ui.println("|    |   |__| ____   ____ \\_   ___ \\  ____  __ __  _____/  |_  ___________ ");
+		ui.println("|    |   |  |/    \\_/ __ \\/    \\  \\/ /  _ \\|  |  \\/    \\   __\\/ __ \\_  __ \\");
+		ui.println("|    |___|  |   |  \\  ___/\\     \\___(  <_> )  |  /   |  \\  | \\  ___/|  | \\/");
+		ui.println("|_______ \\__|___|  /\\___  >\\______  /\\____/|____/|___|  /__|  \\___  >__|   ");
+		ui.println("        \\/       \\/     \\/        \\/                  \\/          \\/       ");
 
-		System.out.println("\nHi! Type help to print a command list\n");
+		ui.println("\nHi! Type help to print a command list\n");
 
 		profiles = Profile.getProfiles();
 		printProfiles();
 		
-		t = new Scanner(System.in);
 		
 		boolean stop = false;
 		while (!stop) {
@@ -51,19 +59,25 @@ public class LineCounter {
 				profiles = Profile.getProfiles();
 				profilesDirty = false;
 			}
-			System.out.print("> ");
-			final String line = t.nextLine();
-			final String[] args = line.split(" ");			
-			System.out.println(dispatchCommand(args));
+			ui.promptInput(">");
 		}
 		
-		t.close();
 		
 	}
+
+	/* (non-Javadoc)
+	 * @see es.ed0.consoleui.input.CommandListener#onCommand(java.lang.String, java.lang.String[])
+	 */
+	@Override
+	public boolean onCommand(String command, String[] args) {
+		ui.println(dispatchCommand(command, args));
+		return true;
+	}
 	
-	private String dispatchCommand(String[] args) {
+	
+	private String dispatchCommand(String command, String[] args) {
 		StringBuilder sb = new StringBuilder("");
-		switch (args[0]) {
+		switch (command) {
 		case help:
 			sb.append("\thelp - show command list\n"
 					+ "\tcreate - create a new line counter profile\n"
@@ -86,27 +100,27 @@ public class LineCounter {
 			printProfiles();
 			break;
 		case print: case info: case delete:
-			if (args.length < 2)
-				sb.append("Syntax: \"").append(args[0]).append(" n\"  where n is the number or name of profile (write \"show\" to list the profiles)");
+			if (args.length < 1)
+				sb.append("Syntax: \"").append(command).append(" n\"  where n is the number or name of profile (write \"show\" to list the profiles)");
 			else {
 				Profile target = null;
 				try {
-					int pIndex = Integer.valueOf(args[1]);
+					int pIndex = Integer.valueOf(args[0]);
 					target = profiles.get(pIndex);
 				} catch (NumberFormatException | IndexOutOfBoundsException e) {
 					for (Profile pr : profiles)
-						if (pr.getName().equals(args[1])) {
+						if (pr.getName().equals(args[0])) {
 							target = pr;
 							break;
 						}
 				}
 				
 				if (target == null) {
-					sb.append("No Profile for " + args[1]);
+					sb.append("No Profile for " + args[0]);
 				} else {
-					switch (args[0]) {
-					case print: target.printResults(); break;
-					case info: target.printInfo(); break;
+					switch (command) {
+					case print: ui.print(target.getPrintResults()); break;
+					case info: ui.print(target.getPrintInfo()); break;
 					case delete:
 						try {
 							target.delete();
@@ -118,51 +132,49 @@ public class LineCounter {
 						break;
 					}
 				}
-				
 			}
 			break;
 			default:
-				sb.append("The command ").append(args[0]).append(" does not exist. Enter \"help\" for command list");
+				sb.append("The command ").append(command).append(" does not exist. Enter \"help\" for command list");
 				break;
 		}
 		return sb.append("\n").toString();
 	}
 	
 	private void printProfiles() {
-		ResultTable<Profile> projectTable = new ResultTable<Profile>(profiles, "Nº", "Name", "Project count");
-		
-		projectTable.setResultPopulator(new ResultPopulator<Profile>() {
+		EntryTable<Profile> profileTable = new EntryTable<Profile>(BorderStyle.hollow, profiles, "Name", "Project count");
+		profileTable.setEnumerate(true);
+		profileTable.setTablePopulator(new TablePopulator<Profile>() {
 			@Override
-			public ArrayList<String> getViewForRow(int index, Profile entry) {
-				final ArrayList<String> data = new ArrayList<String>();
-				data.add(index + "");
-				data.add(entry.getName());
-				data.add(entry.getProjects().size() + "");
-				return data;
+			public ArrayList<Component> getViewForRow(int index, Profile entry) {
+				final ArrayList<Component> row = new ArrayList<Component>();
+				row.add(new Text(entry.getName()));
+				row.add(new Text(entry.getProjects().size()));
+				return row;
 			}
 		});
-		
-		projectTable.print();
+		ui.print(profileTable);
 	}
 	
 	private Profile createProfile() throws IOException {
-		System.out.print(" - Profile name: ");
-		String name = t.nextLine();
-		System.out.print(" - Proyect paths (separated by commas): ");
+		String name = ui.promptText(" - Profile name: ");
+		
+		String projs = ui.promptText(" - Proyect paths (separated by commas): ");
 		ArrayList<Project> ps = new ArrayList<Project>();
-		for (String p : Profile.getArrayFromCsv(t.nextLine(), ","))
+		for (String p : Profile.getArrayFromCsv(projs, ","))
 			try {
 				ps.add(new Project(p));
 			} catch (IOException e) {
-				System.err.println("Project " + p + " could not be found.");
+				ui.println("Project " + p + " could not be found.");
 			}
-		System.out.print(" - Code file extensions (separated by commas): ");
-		ArrayList<String> exts = Profile.getArrayFromCsv(t.nextLine(), ",");
+		String extens = ui.promptText(" - Code file extensions (separated by commas): ");
+		ArrayList<String> exts = Profile.getArrayFromCsv(extens, ",");
 		
 		Profile prof = new Profile(profiles.size(), name, ps, exts);
 		prof.serialize();
 		return prof;
 	}
+
 	
 	
 }
